@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>S3 File Explorer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .folder {
+            cursor: pointer;
+            color: blue;
+        }
+        .file {
+            margin-left: 20px;
+            color: green;
+        }
+    </style>
+    <script>
+        async function fetchFiles(path = '') {
+            const response = await fetch(`/list-files?path=${encodeURIComponent(path)}`);
+            const data = await response.json();
+            const fileList = document.getElementById('file-list');
+            fileList.innerHTML = '';
+
+            data.folders.forEach(folder => {
+                const listItem = document.createElement('li');
+                listItem.classList.add('folder');
+                listItem.textContent = folder.name;
+                listItem.onclick = () => fetchFiles(folder.path);
+                fileList.appendChild(listItem);
+            });
+
+            data.files.forEach(file => {
+                const listItem = document.createElement('li');
+                listItem.classList.add('file');
+                const link = document.createElement('a');
+                link.href = '#';
+                link.innerText = file.name;
+                link.onclick = async () => {
+                    const encodedFilename = encodeURIComponent(file.path);
+                    const urlResponse = await fetch(`/generate-url/${encodedFilename}`);
+                    const urlData = await urlResponse.json();
+                    window.open(urlData.url, '_blank');
+                };
+                listItem.appendChild(link);
+                fileList.appendChild(listItem);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => fetchFiles(''));
+    </script>
+</head>
+<body>
+    <h1>S3 File Explorer</h1>
+    <ul id="file-list"></ul>
+</body>
+</html>

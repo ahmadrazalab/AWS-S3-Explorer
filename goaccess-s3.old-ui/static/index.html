@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>S3 File Explorer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .folder {
+            cursor: pointer;
+            color: blue;
+            margin-left: 20px;
+        }
+        .file {
+            margin-left: 40px;
+            color: green;
+        }
+    </style>
+    <script>
+        async function fetchRootFolders() {
+            const response = await fetch('/list-files');
+            const data = await response.json();
+            const folderList = document.getElementById('folder-list');
+            folderList.innerHTML = '';
+
+            data.folders.forEach(folder => {
+                const listItem = document.createElement('li');
+                listItem.classList.add('folder');
+                listItem.textContent = folder.name;
+                listItem.onclick = () => fetchFilesInFolder(folder.path, listItem);
+                folderList.appendChild(listItem);
+            });
+
+            if (data.next_continuation_token) {
+                const loadMoreBtn = document.createElement('button');
+                loadMoreBtn.textContent = 'Load More';
+                loadMoreBtn.onclick = async () => {
+                    await fetchMoreFolders(data.next_continuation_token);
+                };
+                folderList.appendChild(loadMoreBtn);
+            }
+        }
+
+        async function fetchFilesInFolder(path, listItem) {
+            const response = await fetch(`/list-files-in-folder?path=${encodeURIComponent(path)}`);
+            const data = await response.json();
+            const fileList = document.createElement('ul');
+
+            listItem.appendChild(fileList);
+
+            data.folders.forEach(folder => {
+                const folderItem = document.createElement('li');
+                folderItem.classList.add('folder');
+                folderItem.textContent = folder.name;
+                folderItem.onclick = () => fetchFilesInFolder(folder.path, folderItem);
+                fileList.appendChild(folderItem);
+            });
+
+            data.files.forEach(file => {
+                const fileItem = document.createElement('li');
+                fileItem.classList.add('file');
+                const link = document.createElement('a');
+                link.href = '#';
+                link.innerText = file.name;
+                link.onclick = async () => {
+                    const encodedFilename = encodeURIComponent(file.path);
+                    const urlResponse = await fetch(`/generate-url/${encodedFilename}`);
+                    const urlData = await urlResponse.json();
+                    window.open(urlData.url, '_blank');
+                };
+                fileItem.appendChild(link);
+                fileList.appendChild(fileItem);
+            });
+        }
+
+        async function fetchMoreFolders(token) {
+            const response = await fetch(`/list-files?continuation_token=${encodeURIComponent(token)}`);
+            const data = await response.json();
+            const folderList = document.getElementById('folder-list');
+
+            folderList.removeChild(folderList.lastChild); // Remove 'Load More' button
+
+            data.folders.forEach(folder => {
+                const listItem = document.createElement('li');
+                listItem.classList.add('folder');
+                listItem.textContent = folder.name;
+                listItem.onclick = () => fetchFilesInFolder(folder.path, listItem);
+                folderList.appendChild(listItem);
+            });
+
+            if (data.next_continuation_token) {
+                const loadMoreBtn = document.createElement('button');
+                loadMoreBtn.textContent = 'Load More';
+                loadMoreBtn.onclick = async () => {
+                    await fetchMoreFolders(data.next_continuation_token);
+                };
+                folderList.appendChild(loadMoreBtn);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => fetchRootFolders());
+    </script>
+</head>
+<body>
+    <h1>S3 File Explorer</h1>
+    <ul id="folder-list"></ul>
+</body>
+</html>
