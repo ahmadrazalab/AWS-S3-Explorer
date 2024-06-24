@@ -41,16 +41,7 @@ python3 app.py
 ## Configuration
 Ensure your AWS access keys and secret keys are configured properly for the tool to access your S3 bucket.
 
-## License
-This project is licensed under the MIT License - see the LICENSE.md file for details.
-
-## Contributing
-Please read CONTRIBUTING.md for details on our code of conduct, and the process for submitting pull requests.
-
-## Acknowledgements
-- Thanks to all contributors and the open-source community.
 
 ---
-
-Feel free to customize this README file further to better suit your project and provide additional information as necessary.
+Feel free to customize this project file further to better suit your project.
 ```
