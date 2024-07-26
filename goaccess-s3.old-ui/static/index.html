@@ -1,113 +1,348 @@
-<!DOCTYPE html>
+n
+<!doctype html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>S3 File Explorer</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="./bootstrap.css" rel="stylesheet">
     <style>
+        * {
+            font-family: 'Roboto', sans-serif;
+            font-weight: 400;
+            transition: all .3s;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
         }
-        h1 {
-            text-align: center;
+
+        header {
+            width: 100%;
+            padding: 10px;
+            background: #1A3636;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
         }
-        .folder {
+
+        header h1 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .search-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .search-container input {
+            padding: 5px;
+            border: none;
+            border-radius: 4px;
+            width: 200px;
+        }
+
+        .search-container i {
+            margin-left: 10px;
             cursor: pointer;
-            color: blue;
-            margin-left: 20px;
         }
+
+        .breadcrumbs {
+            margin: 10px 0;
+            padding: 0;
+            list-style: none;
+            display: flex;
+            align-items: center;
+        }
+
+        .breadcrumbs li {
+            margin-right: 5px;
+        }
+
+        .breadcrumbs li a {
+            text-decoration: none;
+            color: #0078D4;
+        }
+
+        .breadcrumbs li::after {
+            content: '/';
+            margin-left: 5px;
+        }
+
+        .breadcrumbs li:last-child::after {
+            content: '';
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+        }
+
+        .sidebar {
+            width: 200px;
+            background: #f3f3f3;
+            border-right: 1px solid #ccc;
+            padding: 10px;
+            overflow-y: auto;
+        }
+
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .sidebar ul li {
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        .sidebar ul li:hover {
+            background: #ddd;
+        }
+
+        .content {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        .folder,
         .file {
-            margin-left: 40px;
-            color: green;
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            background: #EEEEEE;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            box-shadow: rgba(0, 0, 0, 0.12) 0px 1px 3px, rgba(0, 0, 0, 0.24) 0px 1px 2px;
+            cursor: pointer;
+            transition: background 0.3s, box-shadow 0.3s, transform 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .folder i,
+        .file i {
+            font-size: 100px;
+            color: #002847;
+        }
+
+        .folder h1,
+        .file h1 {
+            font-size: 14px;
+            margin: 5px 0;
+            word-wrap: wrap !important;
+        }
+
+        .folder:hover,
+        .file:hover {
+            background: #e1e1e1;
+            box-shadow: rgba(0, 0, 0, 0.4) 0px 2px 4px, rgba(0, 0, 0, 0.3) 0px 7px 13px -3px, rgba(0, 0, 0, 0.2) 0px -3px 0px inset;
+        }
+
+        .folder-content {
+            opacity: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: opacity 0.3s, max-height 0.3s;
+            width: 100%;
+        }
+
+        .folder.open {
+            transform: scale(1.05);
+        }
+
+        .folder.open .folder-content {
+            opacity: 1;
+            max-height: 300px;
+            /* Adjust based on content height */
+        }
+
+        .details-pane {
+            padding: 10px;
+            border-top: 1px solid #ccc;
+            background: #f9f9f9;
+            display: none;
+        }
+
+        .details-pane.open {
+            display: block;
+        }
+
+        .download-button {
+            background: #0078D4;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
         }
     </style>
+</head>
+
+<body>
+    <header>
+        <h1>S3 File Explorer</h1>
+        <div class="search-container">
+            <input type="text" id="search-input" placeholder="Search...">
+            <i class="material-icons" onclick="searchData()">search</i>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <ul id="folder-list">
+
+            </ul>
+        </div>
+        <div class="content" id="content">
+
+        </div>
+    </div>
+
+    <ul class="breadcrumbs" id="breadcrumbs">
+
+    </ul>
+
+    <div class="details-pane" id="details-pane">
+    </div>
+
     <script>
+        let currentPath = '';
+        let allFolders = [];
+        let allFiles = [];
+
         async function fetchRootFolders() {
             const response = await fetch('/list-files');
             const data = await response.json();
-            const folderList = document.getElementById('folder-list');
-            folderList.innerHTML = '';
+            allFolders = data.folders || [];
+            allFiles = data.files || [];
 
-            data.folders.forEach(folder => {
-                const listItem = document.createElement('li');
-                listItem.classList.add('folder');
-                listItem.textContent = folder.name;
-                listItem.onclick = () => fetchFilesInFolder(folder.path, listItem);
-                folderList.appendChild(listItem);
-            });
-
-            if (data.next_continuation_token) {
-                const loadMoreBtn = document.createElement('button');
-                loadMoreBtn.textContent = 'Load More';
-                loadMoreBtn.onclick = async () => {
-                    await fetchMoreFolders(data.next_continuation_token);
-                };
-                folderList.appendChild(loadMoreBtn);
-            }
+            updateContent(allFolders, allFiles);
+            updateBreadcrumbs();
         }
 
-        async function fetchFilesInFolder(path, listItem) {
+        async function fetchFilesInFolder(path) {
             const response = await fetch(`/list-files-in-folder?path=${encodeURIComponent(path)}`);
             const data = await response.json();
-            const fileList = document.createElement('ul');
+            allFolders = data.folders || [];
+            allFiles = data.files || [];
 
-            listItem.appendChild(fileList);
+            updateContent(allFolders, allFiles);
+            currentPath = path;
+            updateBreadcrumbs();
+        }
 
-            data.folders.forEach(folder => {
-                const folderItem = document.createElement('li');
+        function updateContent(folders, files) {
+            const content = document.getElementById('content');
+            const detailsPane = document.getElementById('details-pane');
+
+            content.innerHTML = '';
+            detailsPane.classList.remove('open');
+
+            folders.forEach(folder => {
+                const folderItem = document.createElement('div');
                 folderItem.classList.add('folder');
-                folderItem.textContent = folder.name;
-                folderItem.onclick = () => fetchFilesInFolder(folder.path, folderItem);
-                fileList.appendChild(folderItem);
+                folderItem.innerHTML = `
+                    <i class="material-icons">folder</i>
+                    <h1>${folder.name}</h1>
+                    <div class="folder-content">
+                        <!-- Content of the folder can go here, if needed -->
+                    </div>
+                `;
+                folderItem.onclick = () => {
+                    folderItem.classList.toggle('open');
+                    if (folderItem.classList.contains('open')) {
+                        fetchFilesInFolder(folder.path);
+                    }
+                };
+                content.appendChild(folderItem);
             });
 
-            data.files.forEach(file => {
-                const fileItem = document.createElement('li');
+            files.forEach(file => {
+                const fileItem = document.createElement('div');
                 fileItem.classList.add('file');
-                const link = document.createElement('a');
-                link.href = '#';
-                link.innerText = file.name;
-                link.onclick = async () => {
+                fileItem.innerHTML = `
+                    <i class="material-icons">insert_drive_file</i>
+                    <h1>${file.name}</h1>
+                    <button class="download-button" onclick="downloadItem('${file.path}', 'file')">Download</button>
+                `;
+                fileItem.onclick = async () => {
                     const encodedFilename = encodeURIComponent(file.path);
                     const urlResponse = await fetch(`/generate-url/${encodedFilename}`);
                     const urlData = await urlResponse.json();
-                    window.open(urlData.url, '_blank');
+                    detailsPane.classList.add('open');
+                    detailsPane.innerHTML = `
+                        <h2>File Details</h2>
+                        <p><strong>Name:</strong> ${file.name}</p>
+                        <p><strong>URL:</strong> <a href="${urlData.url}" target="_blank">${urlData.url}</a></p>
+                    `;
                 };
-                fileItem.appendChild(link);
-                fileList.appendChild(fileItem);
+                content.appendChild(fileItem);
             });
         }
 
-        async function fetchMoreFolders(token) {
-            const response = await fetch(`/list-files?continuation_token=${encodeURIComponent(token)}`);
-            const data = await response.json();
-            const folderList = document.getElementById('folder-list');
+        function searchData() {
+            const query = document.getElementById('search-input').value.toLowerCase();
 
-            folderList.removeChild(folderList.lastChild); // Remove 'Load More' button
-
-            data.folders.forEach(folder => {
-                const listItem = document.createElement('li');
-                listItem.classList.add('folder');
-                listItem.textContent = folder.name;
-                listItem.onclick = () => fetchFilesInFolder(folder.path, listItem);
-                folderList.appendChild(listItem);
-            });
-
-            if (data.next_continuation_token) {
-                const loadMoreBtn = document.createElement('button');
-                loadMoreBtn.textContent = 'Load More';
-                loadMoreBtn.onclick = async () => {
-                    await fetchMoreFolders(data.next_continuation_token);
-                };
-                folderList.appendChild(loadMoreBtn);
+            if (allFolders && allFiles) {
+                const filteredFolders = allFolders.filter(folder => folder.name.toLowerCase().includes(query));
+                const filteredFiles = allFiles.filter(file => file.name.toLowerCase().includes(query));
+                updateContent(filteredFolders, filteredFiles);
             }
         }
 
-        document.addEventListener('DOMContentLoaded', () => fetchRootFolders());
+        function updateBreadcrumbs() {
+            const breadcrumbs = document.getElementById('breadcrumbs');
+            const pathParts = currentPath.split('/').filter(part => part.length > 0);
+            breadcrumbs.innerHTML = '<li><a href="#" onclick="fetchRootFolders()">Home</a></li>';
+
+            let path = '';
+            pathParts.forEach((part, index) => {
+                path += `/${part}`;
+                breadcrumbs.innerHTML += `
+                    <li><a href="#" onclick="fetchFilesInFolder('${path}')">${part}</a></li>
+                `;
+            });
+        }
+
+        async function downloadItem(path, type) {
+            const response = await fetch(`/download?path=${encodeURIComponent(path)}&type=${type}`);
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = type === 'folder' ? `${path.split('/').pop()}.zip` : path.split('/').pop();
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+            } else {
+                alert('Failed to download item');
+            }
+        }
+
+        // Initial fetch of root folders
+        fetchRootFolders();
     </script>
-</head>
-<body>
-    <h1>S3 File Explorer</h1>
-    <ul id="folder-list"></ul>
 </body>
+
 </html>
