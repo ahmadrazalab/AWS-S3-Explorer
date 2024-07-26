@@ -6,10 +6,10 @@ from flask import Flask, jsonify, request, send_file
 app = Flask(__name__)
 
 # Configuration
-S3_BUCKET = "xxxxxxx"
-S3_ACCESS_KEY = "xxxxxxx"
-S3_SECRET_KEY = "xxxxxxx"
-S3_REGION = "xxxxxxx"
+S3_BUCKET = "XXX"
+S3_ACCESS_KEY = "XXXX"
+S3_SECRET_KEY = "XXXX"
+S3_REGION = "XXXX"
 
 # Initialize S3 client
 s3_client = boto3.client(

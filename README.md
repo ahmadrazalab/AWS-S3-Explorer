@@ -1,6 +1,3 @@
-Here's a formatted `README.md` file for your GitHub repository:
-
-```markdown
 # s3-web-ui-tool
 
 ## Why this tool / How to use it
@@ -40,8 +37,3 @@ python3 app.py
 
 ## Configuration
 Ensure your AWS access keys and secret keys are configured properly for the tool to access your S3 bucket.
-
-
----
-Feel free to customize this project file further to better suit your project.
-```
