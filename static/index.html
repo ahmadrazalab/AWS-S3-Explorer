@@ -205,6 +205,12 @@
             <input type="text" id="search-input" placeholder="Search...">
             <i class="material-icons" onclick="searchData()">search</i>
         </div>
+        <div class="bucket-container">
+            <label for="bucket-select">Select Bucket:</label>
+            <select id="bucket-select" onchange="fetchRootFolders()">
+                <option value="" disabled selected>Select a bucket</option>
+            </select>
+        </div>
     </header>
 
     <ul class="breadcrumbs" id="breadcrumbs">
@@ -222,8 +228,6 @@
         </div>
     </div>
 
-
-
     <div class="details-pane" id="details-pane">
     </div>
 
@@ -232,8 +236,26 @@
         let allFolders = [];
         let allFiles = [];
 
+        async function fetchBuckets() {
+            const response = await fetch('/list-buckets');
+            const data = await response.json();
+            const bucketSelect = document.getElementById('bucket-select');
+            bucketSelect.innerHTML = '<option value="" disabled selected>Select a bucket</option>';
+
+            data.buckets.forEach(bucket => {
+                const option = document.createElement('option');
+                option.value = bucket;
+                option.textContent = bucket;
+                bucketSelect.appendChild(option);
+            });
+        }
+
         async function fetchRootFolders() {
-            const response = await fetch('/list-files');
+            const bucket = document.getElementById('bucket-select').value;
+            if (!bucket) {
+                return;
+            }
+            const response = await fetch(`/list-files?bucket=${bucket}`);
             const data = await response.json();
             allFolders = data.folders || [];
             allFiles = data.files || [];
@@ -243,7 +265,11 @@
         }
 
         async function fetchFilesInFolder(path) {
-            const response = await fetch(`/list-files-in-folder?path=${encodeURIComponent(path)}`);
+            const bucket = document.getElementById('bucket-select').value;
+            if (!bucket) {
+                return;
+            }
+            const response = await fetch(`/list-files-in-folder?bucket=${bucket}&path=${encodeURIComponent(path)}`);
             const data = await response.json();
             allFolders = data.folders || [];
             allFiles = data.files || [];
@@ -289,12 +315,10 @@
                 `;
                 fileItem.ondblclick = async () => {
                     const encodedFilename = encodeURIComponent(file.path);
-                    const urlResponse = await fetch(`/generate-url/${encodedFilename}`);
-
-
+                    const bucket = document.getElementById('bucket-select').value;
+                    const urlResponse = await fetch(`/generate-url/${encodedFilename}?bucket=${bucket}`);
                     const urlData = await urlResponse.json();
-                    window.open(urlData.url, "_blank")
-
+                    window.open(urlData.url, "_blank");
                 };
                 content.appendChild(fileItem);
             });
@@ -325,7 +349,11 @@
         }
 
         async function downloadItem(path, type) {
-            const response = await fetch(`/download?path=${encodeURIComponent(path)}&type=${type}`);
+            const bucket = document.getElementById('bucket-select').value;
+            if (!bucket) {
+                return;
+            }
+            const response = await fetch(`/download?bucket=${bucket}&path=${encodeURIComponent(path)}&type=${type}`);
             if (response.ok) {
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
@@ -341,12 +369,12 @@
             }
         }
 
-        // Initial fetch of root folders
-        fetchRootFolders();
-
-
+        // Initial fetch of buckets
+        fetchBuckets();
 
     </script>
 </body>
+
+
 
 </html>
