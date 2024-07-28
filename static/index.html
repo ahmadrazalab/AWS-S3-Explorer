@@ -198,6 +198,7 @@
     </style>
 </head>
 
+
 <body>
     <header>
         <h1>AWS S3 Navigator</h1>
@@ -226,6 +227,13 @@
         <div class="content" id="content">
 
         </div>
+    </div>
+
+    <div class="upload-container">
+        <h2>Upload File</h2>
+        <input type="file" id="file-input">
+        <input type="text" id="upload-path" placeholder="Enter path to upload">
+        <button onclick="uploadFile()">Upload</button>
     </div>
 
     <div class="details-pane" id="details-pane">
@@ -366,6 +374,39 @@
                 window.URL.revokeObjectURL(url);
             } else {
                 alert('Failed to download item');
+            }
+        }
+
+        async function uploadFile() {
+            const fileInput = document.getElementById('file-input');
+            const file = fileInput.files[0];
+            const bucket = document.getElementById('bucket-select').value;
+            const uploadPath = document.getElementById('upload-path').value;
+
+            if (!file || !bucket || !uploadPath) {
+                alert('Please select a file, bucket, and enter upload path.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('bucket', bucket);
+            formData.append('path', uploadPath);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    alert('File uploaded successfully');
+                    fetchFilesInFolder(uploadPath);
+                } else {
+                    alert('Failed to upload file');
+                }
+            } catch (error) {
+                alert('Error uploading file: ' + error.message);
             }
         }
 
