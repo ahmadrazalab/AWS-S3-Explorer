@@ -178,5 +178,23 @@ def download():
         except Exception as e:
             return str(e), 500
 
+@app.route("/upload", methods=["POST"])
+def upload():
+    """Upload a file to the specified path in the selected S3 bucket."""
+    try:
+        bucket_name = request.form["bucket"]
+        path = request.form["path"]
+        file = request.files["file"]
+
+        if bucket_name not in s3_clients:
+            return "Invalid bucket name", 400
+
+        s3_client = s3_clients[bucket_name]
+        s3_client.upload_fileobj(file, bucket_name, os.path.join(path, file.filename))
+
+        return "File uploaded successfully", 200
+    except Exception as e:
+        return str(e), 500
+
 if __name__ == "__main__":
     app.run(debug=True)
