@@ -2,14 +2,19 @@ import boto3
 import io
 import zipfile
 from flask import Flask, jsonify, request, send_file
+from dotenv import load_dotenv
+import os
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 
 # Configuration
-S3_BUCKET = "XXX"
-S3_ACCESS_KEY = "XXXX"
-S3_SECRET_KEY = "XXXX"
-S3_REGION = "XXXX"
+S3_BUCKET = os.getenv("S3_BUCKET")
+S3_ACCESS_KEY = os.getenv("S3_ACCESS_KEY")
+S3_SECRET_KEY = os.getenv("S3_SECRET_KEY")
+S3_REGION = os.getenv("S3_REGION")
 
 # Initialize S3 client
 s3_client = boto3.client(
@@ -18,7 +23,6 @@ s3_client = boto3.client(
     aws_secret_access_key=S3_SECRET_KEY,
     region_name=S3_REGION,
 )
-
 
 def list_objects_in_folder(prefix, continuation_token=None):
     """List objects (folders and files) in the specified prefix with pagination."""
@@ -45,11 +49,9 @@ def list_objects_in_folder(prefix, continuation_token=None):
         "next_continuation_token": next_continuation_token,
     }
 
-
 @app.route("/")
 def index():
     return app.send_static_file("index.html")
-
 
 @app.route("/list-files", methods=["GET"])
 def list_files():
@@ -65,7 +67,6 @@ def list_files():
     except Exception as e:
         return str(e), 500
 
-
 @app.route("/list-files-in-folder", methods=["GET"])
 def list_files_in_folder():
     """List files in a specific folder in the S3 bucket."""
@@ -75,7 +76,6 @@ def list_files_in_folder():
         return jsonify({"folders": response["folders"], "files": response["files"]})
     except Exception as e:
         return str(e), 500
-
 
 @app.route("/generate-url/<path:filename>", methods=["GET"])
 def generate_url(filename):
@@ -87,7 +87,6 @@ def generate_url(filename):
         return jsonify({"url": url})
     except Exception as e:
         return str(e), 500
-
 
 @app.route("/download", methods=["GET"])
 def download():
@@ -127,7 +126,6 @@ def download():
             )
         except Exception as e:
             return str(e), 500
-
 
 if __name__ == "__main__":
     app.run(debug=True)
