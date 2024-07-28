@@ -212,32 +212,23 @@
                 <option value="" disabled selected>Select a bucket</option>
             </select>
         </div>
+        <div class="upload-container">
+            <label for="file-input">Upload File:</label>
+            <input type="file" id="file-input">
+            <button onclick="uploadFile()">Upload</button>
+        </div>
     </header>
 
-    <ul class="breadcrumbs" id="breadcrumbs">
-
-    </ul>
+    <ul class="breadcrumbs" id="breadcrumbs"></ul>
 
     <div class="main-container">
         <div class="sidebar">
-            <ul id="folder-list">
-
-            </ul>
+            <ul id="folder-list"></ul>
         </div>
-        <div class="content" id="content">
-
-        </div>
+        <div class="content" id="content"></div>
     </div>
 
-    <div class="upload-container">
-        <h2>Upload File</h2>
-        <input type="file" id="file-input">
-        <input type="text" id="upload-path" placeholder="Enter path to upload">
-        <button onclick="uploadFile()">Upload</button>
-    </div>
-
-    <div class="details-pane" id="details-pane">
-    </div>
+    <div class="details-pane" id="details-pane"></div>
 
     <script>
         let currentPath = '';
@@ -300,9 +291,7 @@
                 folderItem.innerHTML = `
                     <i class="material-icons">folder</i>
                     <h1>${folder.name}</h1>
-                    <div class="folder-content">
-                        <!-- Content of the folder can go here, if needed -->
-                    </div>
+                    <div class="folder-content"></div>
                 `;
                 folderItem.onclick = () => {
                     folderItem.classList.toggle('open');
@@ -381,17 +370,16 @@
             const fileInput = document.getElementById('file-input');
             const file = fileInput.files[0];
             const bucket = document.getElementById('bucket-select').value;
-            const uploadPath = document.getElementById('upload-path').value;
 
-            if (!file || !bucket || !uploadPath) {
-                alert('Please select a file, bucket, and enter upload path.');
+            if (!file || !bucket) {
+                alert('Please select a file and bucket.');
                 return;
             }
 
             const formData = new FormData();
             formData.append('file', file);
             formData.append('bucket', bucket);
-            formData.append('path', uploadPath);
+            formData.append('path', currentPath);
 
             try {
                 const response = await fetch('/upload', {
@@ -401,7 +389,7 @@
 
                 if (response.ok) {
                     alert('File uploaded successfully');
-                    fetchFilesInFolder(uploadPath);
+                    fetchFilesInFolder(currentPath);
                 } else {
                     alert('Failed to upload file');
                 }
@@ -412,9 +400,9 @@
 
         // Initial fetch of buckets
         fetchBuckets();
-
     </script>
 </body>
+
 
 
 
