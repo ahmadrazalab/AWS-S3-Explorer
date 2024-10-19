@@ -205,6 +205,11 @@
         <div class="search-container">
             <input type="text" id="search-input" placeholder="Search...">
             <i class="material-icons" onclick="searchData()">search</i>
+            {% if session.get("logged_in") %}
+                <a href="{{ url_for('logout') }}">Logout</a>
+            {% else %}
+                <a href="{{ url_for('login') }}">Login</a>
+            {% endif %}
         </div>
         <div class="bucket-container">
             <label for="bucket-select">Select Bucket:</label>

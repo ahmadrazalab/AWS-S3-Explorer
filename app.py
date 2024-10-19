@@ -4,11 +4,68 @@ import zipfile
 from flask import Flask, jsonify, request, send_file
 from dotenv import load_dotenv
 import os
+import sqlite3
+import bcrypt
+from flask import Flask, jsonify, request, send_file, session, redirect, url_for, render_template_string
+
+app = Flask(__name__)
+app.secret_key = os.getenv('SECRET_KEY', 'your_secret_key')  # Set a secret key for session management
+
+
 
 # Load environment variables from .env file
 load_dotenv()
 
-app = Flask(__name__)
+
+# login prmpt 
+# Add this function to handle authentication
+def check_user(username, password):
+    conn = sqlite3.connect('users.db')
+    c = conn.cursor()
+    c.execute("SELECT password FROM users WHERE username = ?", (username,))
+    result = c.fetchone()
+    conn.close()
+    if result and bcrypt.checkpw(password.encode(), result[0].encode()):
+        return True
+    return False
+
+def add_user(username, password):
+    hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    conn = sqlite3.connect('users.db')
+    c = conn.cursor()
+    c.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed_password))
+    conn.commit()
+    conn.close()
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+        if check_user(username, password):
+            session["logged_in"] = True
+            return redirect(url_for("index"))
+        else:
+            return "Invalid credentials", 401
+    return render_template_string('''
+        <form method="post">
+            Username: <input type="text" name="username"><br>
+            Password: <input type="password" name="password"><br>
+            <input type="submit" value="Login">
+        </form>
+    ''')
+
+@app.route("/logout")
+def logout():
+    session.pop("logged_in", None)
+    return redirect(url_for("login"))
+
+@app.before_request
+def require_login():
+    if not session.get("logged_in"):
+        if request.endpoint not in ["login", "static"]:
+            return redirect(url_for("login"))
+
 
 # Configuration for multiple S3 buckets
 buckets = [
